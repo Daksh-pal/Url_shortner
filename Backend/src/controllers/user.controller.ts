@@ -2,25 +2,24 @@ import { Request, Response } from 'express';
 import { User } from '../model/user.Model';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { Prisma } from '@prisma/client/extension';
+import { prisma } from '../lib/prisma';
 
 export const registerUser = async (req: Request, res: Response) => {
     try {
         const { name, email, password } = req.body;
-        const existingUser = await User.findOne({ email });
+        // const existingUser = await User.findOne({ email });
+        const existingUser = await prisma.user.findUnique({where : {email}});
         if (existingUser) {
             return res.status(409).json({ message: "User with this email already exists" });
         }
 
         const encryptedPassword = await bcrypt.hash(password, 10);
 
-        const newUser = await User.create({
-            name,
-            email,
-            password: encryptedPassword
-        });
+        const newUser = await prisma.user.create({data : {name , email , password : encryptedPassword}});
 
         const token = jwt.sign(
-            { id: newUser._id },
+            { id: newUser.id },
             process.env.JWT_SECRET || "secret",
             { expiresIn: "1d" }
         )
@@ -35,7 +34,7 @@ export const registerUser = async (req: Request, res: Response) => {
         return res.status(201).json({
             message: "User registered successfully",
             user: {
-                id: newUser._id,
+                id: newUser.id,
                 name: newUser.name,
                 email: newUser.email
             }
@@ -49,7 +48,7 @@ export const registerUser = async (req: Request, res: Response) => {
 export const loginUser = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const user = await prisma.user.findUnique({where : { email }});
 
         if (!user) {
             return res.status(401).json({ message: "Invalid email address" });
@@ -60,7 +59,7 @@ export const loginUser = async (req: Request, res: Response) => {
         }
 
         const token = jwt.sign(
-            { id: user._id },
+            { id: user.id },
             process.env.JWT_SECRET || "secret",
             { expiresIn: "1d" }
         )
@@ -74,7 +73,7 @@ export const loginUser = async (req: Request, res: Response) => {
         return res.status(200).json({
             message: "User logged in successfully",
             user: {
-                id: user._id,
+                id: user.id,
                 name: user.name,
                 email: user.email
             }

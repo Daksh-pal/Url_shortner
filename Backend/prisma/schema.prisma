@@ -12,3 +12,28 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  urls      Url[]    // One user can have many URLs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Url {
+  id          Int      @id @default(autoincrement())
+  shortId     String   @unique
+  originalUrl String
+  clicks      Int      @default(0)
+  
+  // Relation to User (optional, so unauthenticated users can also shorten URLs if allowed)
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@unique([originalUrl, userId])
+}

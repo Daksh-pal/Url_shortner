@@ -1,15 +1,35 @@
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
-export const Navbar = () => {
+interface NavbarProps {
+    activeView?: "shorten" | "links";
+    onNavigate?: (view: "shorten" | "links") => void;
+}
+
+export const Navbar = ({ activeView = "shorten", onNavigate }: NavbarProps) => {
     const { user, openlogin, openRegister, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
 
+    const handleNavigate = (view: "shorten" | "links") => {
+        if (view === "links" && !user) {
+            openlogin();
+            return;
+        }
+        if (onNavigate) {
+            onNavigate(view);
+        }
+    };
+
     return (
         <header className="border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md sticky top-0 z-40 bg-white/80 dark:bg-slate-950/70 transition-colors duration-200">
-            <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+            <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4 relative">
+                {/* Brand Logo (Left) */}
+                <button
+                    onClick={() => handleNavigate("shorten")}
+                    type="button"
+                    className="flex items-center space-x-3 cursor-pointer group text-left border-none bg-transparent p-0 z-10 shrink-0"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
@@ -19,9 +39,42 @@ export const Navbar = () => {
                             ShortURL
                         </span>
                     </div>
-                </div>
+                </button>
 
-                <div className="flex items-center space-x-3">
+                {/* View Switcher Navigation Tabs - Perfectly Centered on Page */}
+                <nav className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center p-1 rounded-xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-xs font-semibold shadow-xs">
+                    <button
+                        type="button"
+                        onClick={() => handleNavigate("shorten")}
+                        className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                            activeView === "shorten"
+                                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        <span>Shortener</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleNavigate("links")}
+                        className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                            activeView === "links"
+                                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span>My Links</span>
+                    </button>
+                </nav>
+
+                {/* Right Side Actions */}
+                <div className="flex items-center space-x-3 z-10">
                     {/* Status Badge (hidden on smallest screens) */}
                     <div className="hidden sm:flex items-center space-x-1.5 bg-slate-100/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full text-xs text-slate-500 dark:text-slate-400">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
@@ -104,6 +157,40 @@ export const Navbar = () => {
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* Mobile View Switcher - Centered on mobile screens */}
+            <div className="sm:hidden flex items-center justify-center pb-2.5 pt-0.5 px-4">
+                <nav className="flex items-center p-1 rounded-xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-xs font-semibold w-full max-w-xs justify-center shadow-xs">
+                    <button
+                        type="button"
+                        onClick={() => handleNavigate("shorten")}
+                        className={`flex-1 justify-center px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                            activeView === "shorten"
+                                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        <span>Shortener</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleNavigate("links")}
+                        className={`flex-1 justify-center px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                            activeView === "links"
+                                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span>My Links</span>
+                    </button>
+                </nav>
             </div>
         </header>
     );

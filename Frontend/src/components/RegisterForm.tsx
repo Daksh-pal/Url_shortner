@@ -7,7 +7,7 @@ import axios from "axios";
 interface RegisterFormProps {
     onSwitchToLogin?: () => void;
     onClose?: () => void;
-    onSubmit?: (data: { name: string; email: string; password: string }) => void;
+    onSubmit?: (data: { name: string; email: string }) => void;
 }
 
 export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFormProps) => {
@@ -39,8 +39,8 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
         e.preventDefault();
         setError("");
 
-        if (!name.trim() || !email.trim() || !password) {
-            setError("Please fill in all required fields");
+        if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+            setError("Please fill in all fields");
             return;
         }
 
@@ -57,27 +57,24 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
         setLoading(true);
 
         try {
-            const res = await registerUser({
-                name: name.trim(),
-                email: email.trim(),
-                password,
-            });
+            const res = await registerUser({ name: name.trim(), email: email.trim(), password });
             if (res.user) {
                 setUser(res.user);
             }
             if (onSubmit) {
-                onSubmit({ name: name.trim(), email: email.trim(), password });
+                onSubmit({ name: name.trim(), email: email.trim() });
             }
             handleClose();
         } catch (err: unknown) {
             console.error("Registration failed:", err);
-            if(axios.isAxiosError(err)){
-
+            if (axios.isAxiosError(err)) {
                 const message =
-                err.response?.data?.message ||
-                err.message ||
-                "Failed to register. Please try again.";
+                    err.response?.data?.message ||
+                    err.message ||
+                    "Failed to register. Please try again.";
                 setError(message);
+            } else {
+                setError("An unexpected error occurred. Please try again.");
             }
         } finally {
             setLoading(false);
@@ -85,12 +82,12 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
     };
 
     return (
-        <div className="w-full max-w-md mx-auto bg-slate-900/90 border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl relative">
+        <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl relative transition-colors duration-200">
             {/* Close Button */}
             <button
                 onClick={handleClose}
                 type="button"
-                className="absolute top-3.5 right-3.5 text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800/60 cursor-pointer"
+                className="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 aria-label="Close modal"
             >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,27 +95,27 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
                 </svg>
             </button>
 
-            {/* Compact Header */}
+            {/* Header */}
             <div className="text-center mb-4">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-medium mb-1.5">
-                    <svg className="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-300 text-[11px] font-medium mb-1.5">
+                    <svg className="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
                     Get Started Free
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                     Create your account
                 </h2>
-                <p className="text-slate-400 text-xs mt-0.5">
+                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
                     Start shortening and organizing your links
                 </p>
             </div>
 
             {/* Error Banner */}
             {error && (
-                <div className="mb-3 px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center justify-between">
+                <div className="mb-3 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                        <svg className="w-4 h-4 shrink-0 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 shrink-0 text-rose-500 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {error}
@@ -126,7 +123,7 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
                     <button
                         type="button"
                         onClick={() => setError("")}
-                        className="text-rose-400 hover:text-rose-200 cursor-pointer ml-2"
+                        className="text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-200 cursor-pointer ml-2"
                     >
                         &times;
                     </button>
@@ -137,11 +134,11 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
             <form onSubmit={handleSubmit} className="space-y-3">
                 {/* Full Name */}
                 <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Full Name
                     </label>
                     <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
@@ -152,18 +149,18 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
                             placeholder="John Doe"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-xs sm:text-sm"
+                            className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-xs sm:text-sm"
                         />
                     </div>
                 </div>
 
                 {/* Email Field */}
                 <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Email Address
                     </label>
                     <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                             </svg>
@@ -174,16 +171,16 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
                             placeholder="you@example.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-xs sm:text-sm"
+                            className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-xs sm:text-sm"
                         />
                     </div>
                 </div>
 
-                {/* Password & Confirm Password (2-column layout to save vertical space) */}
+                {/* Password & Confirm Password */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {/* Password */}
                     <div>
-                        <label className="block text-xs font-medium text-slate-300 mb-1">
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                             Password
                         </label>
                         <div className="relative">
@@ -193,12 +190,12 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
                                 placeholder="Min 6 chars"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-3 pr-8 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-xs sm:text-sm"
+                                className="w-full pl-3 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-xs sm:text-sm"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                                className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
                                 aria-label={showPassword ? "Hide password" : "Show password"}
                             >
                                 {showPassword ? (
@@ -217,7 +214,7 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
 
                     {/* Confirm Password */}
                     <div>
-                        <label className="block text-xs font-medium text-slate-300 mb-1">
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                             Confirm
                         </label>
                         <div className="relative">
@@ -227,7 +224,7 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
                                 placeholder="Re-enter"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full pl-3 pr-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-xs sm:text-sm"
+                                className="w-full pl-3 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-xs sm:text-sm"
                             />
                         </div>
                     </div>
@@ -259,12 +256,12 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
             </form>
 
             {/* Switch to Login */}
-            <div className="mt-4 pt-3.5 border-t border-slate-800 text-center text-xs text-slate-400">
+            <div className="mt-4 pt-3.5 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
                 Already have an account?{" "}
                 <button
                     type="button"
                     onClick={handleSwitch}
-                    className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors hover:underline cursor-pointer"
+                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors hover:underline cursor-pointer"
                 >
                     Sign in instead
                 </button>
@@ -272,3 +269,4 @@ export const RegisterForm = ({ onSwitchToLogin, onClose, onSubmit }: RegisterFor
         </div>
     );
 };
+

@@ -8,3 +8,4 @@ export { LoginForm } from "./LoginForm";
 export { RegisterForm } from "./RegisterForm";
 export { AuthModal } from "./AuthModal";
 export { LoadingOverlay } from "./LoadingOverlay";
+export {UserLinksList} from "./UserLinksList"
