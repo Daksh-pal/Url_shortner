@@ -33,11 +33,20 @@ export interface UserLink {
     updatedAt: string;
 }
 
-export interface GetAllLinksResponse {
-    links: UserLink[];
-}
-
 export interface DeleteLinkResponse {
     message: string;
 }
 
+export interface PaginationInfo {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+}
+
+export interface GetAllLinksResponse {
+    links: UserLink[];
+    pagination?: PaginationInfo;
+}

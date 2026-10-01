@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { UserLink } from "../types/url.types";
 
 interface DeleteConfirmModalProps {
@@ -27,9 +28,19 @@ export const DeleteConfirmModal = ({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, isDeleting, onClose]);
 
+    // Lock background body scroll when modal is open
+    useEffect(() => {
+        if (!isOpen) return;
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = originalOverflow;
+        };
+    }, [isOpen]);
+
     if (!isOpen || !link) return null;
 
-    return (
+    return createPortal(
         <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
             role="dialog"
@@ -128,6 +139,7 @@ export const DeleteConfirmModal = ({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

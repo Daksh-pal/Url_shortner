@@ -11,8 +11,10 @@ export const createShortUrl = async (url: string, slug?: string): Promise<ApiRes
     return response.data;
 };
 
-export const getUserLinks = async (): Promise<GetAllLinksResponse> => {
-    const response = await apiClient.get('/api/links');
+export const getUserLinks = async (page = 1, limit = 10): Promise<GetAllLinksResponse> => {
+    const response = await apiClient.get('/api/links', {
+        params: { page, limit },
+    });
     return response.data;
 };
 

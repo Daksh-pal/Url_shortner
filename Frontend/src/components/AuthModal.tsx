@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
 import { useAuth } from "../context/AuthContext";
@@ -5,9 +7,19 @@ import { useAuth } from "../context/AuthContext";
 export const AuthModal = () => {
     const { isAuthModelOpen, closeAuthModal, authmode, setAuthMode } = useAuth();
 
+    // Lock background body scroll when auth modal is open
+    useEffect(() => {
+        if (!isAuthModelOpen) return;
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = originalOverflow;
+        };
+    }, [isAuthModelOpen]);
+
     if (!isAuthModelOpen) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md animate-fadeIn">
             {/* Backdrop click to dismiss */}
             <div
@@ -57,7 +69,8 @@ export const AuthModal = () => {
                     />
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

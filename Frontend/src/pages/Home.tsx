@@ -82,17 +82,6 @@ export const Home = () => {
                                 </span>
                                 <span>Back to Shortener</span>
                             </button>
-
-                            <button
-                                onClick={() => setActiveView("shorten")}
-                                type="button"
-                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm hover:shadow transition-all cursor-pointer"
-                            >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                                <span>Shorten New URL</span>
-                            </button>
                         </div>
 
                         <UserLinksList

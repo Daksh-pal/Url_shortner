@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { getUserLinks, deleteUserLink } from "../apis/shortUrl.api";
 import { API_BASE_URL } from "../apis/client";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
-import type { UserLink } from "../types/url.types";
+import type { UserLink, PaginationInfo } from "../types/url.types";
 import axios from "axios";
 
 interface UserLinksListProps {
@@ -22,6 +22,10 @@ export const UserLinksList = ({
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Pagination State
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+
     // Delete Modal State
     const [linkToDelete, setLinkToDelete] = useState<UserLink | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -32,14 +36,16 @@ export const UserLinksList = ({
     // Search query state
     const [searchQuery, setSearchQuery] = useState("");
 
-    const fetchLinks = useCallback(async () => {
+    const fetchLinks = useCallback(async (targetPage?: number) => {
         if (!user) return;
         setIsLoading(true);
         setError(null);
 
+        const pageToFetch = typeof targetPage === "number" ? targetPage : page;
         try {
-            const data = await getUserLinks();
+            const data = await getUserLinks(pageToFetch, 10);
             setLinks(data.links || []);
+            setPagination(data.pagination || null);
         } catch (err: unknown) {
             console.error("Failed to load user links:", err);
             if (axios.isAxiosError(err) && err.response?.status !== 401) {
@@ -48,17 +54,18 @@ export const UserLinksList = ({
         } finally {
             setIsLoading(false);
         }
-    }, [user]);
+    }, [user, page]);
 
     useEffect(() => {
         if (!user) return;
 
         let isMounted = true;
 
-        getUserLinks()
+        getUserLinks(page, 10)
             .then((data) => {
                 if (isMounted) {
                     setLinks(data.links || []);
+                    setPagination(data.pagination || null);
                     setIsLoading(false);
                 }
             })
@@ -74,7 +81,7 @@ export const UserLinksList = ({
         return () => {
             isMounted = false;
         };
-    }, [user, refreshTrigger]);
+    }, [user, page, refreshTrigger]);
 
     const handleCopy = async (id: number, shortId: string) => {
         const fullShortUrl = `${API_BASE_URL}/r/${shortId}`;
@@ -97,11 +104,17 @@ export const UserLinksList = ({
         setIsDeleting(true);
         try {
             await deleteUserLink(linkToDelete.id);
-            setLinks((prev) => prev.filter((item) => item.id !== linkToDelete.id));
             if (onLinkDeleted) {
                 onLinkDeleted(linkToDelete.id);
             }
             setLinkToDelete(null);
+
+            // If we deleted the only item on the current page and page > 1, go back one page
+            if (links.length === 1 && page > 1) {
+                setPage((prev) => prev - 1);
+            } else {
+                fetchLinks(page);
+            }
         } catch (err: unknown) {
             console.error("Failed to delete link:", err);
             if (axios.isAxiosError(err)) {
@@ -142,12 +155,9 @@ export const UserLinksList = ({
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                             My Links
                         </h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Manage and track your shortened URLs
-                        </p>
                     </div>
                     <span className="ml-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
-                        {links.length}
+                        {pagination ? pagination.total : links.length}
                     </span>
                 </div>
 
@@ -180,7 +190,7 @@ export const UserLinksList = ({
 
                     <button
                         type="button"
-                        onClick={fetchLinks}
+                        onClick={() => fetchLinks()}
                         disabled={isLoading}
                         title="Refresh links"
                         className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
@@ -209,7 +219,7 @@ export const UserLinksList = ({
                     <span>{error}</span>
                     <button
                         type="button"
-                        onClick={fetchLinks}
+                        onClick={() => fetchLinks()}
                         className="text-indigo-600 dark:text-indigo-400 underline font-medium hover:text-indigo-700 ml-2 cursor-pointer"
                     >
                         Try again
@@ -219,17 +229,17 @@ export const UserLinksList = ({
 
             {/* Loading Skeleton */}
             {isLoading && links.length === 0 && (
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 space-y-2.5">
                     {[1, 2, 3].map((i) => (
                         <div
                             key={i}
-                            className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-pulse flex flex-col sm:flex-row justify-between gap-4"
+                            className="p-3.5 sm:px-4 sm:py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-pulse flex flex-col sm:flex-row justify-between gap-3"
                         >
-                            <div className="space-y-2 flex-1">
+                            <div className="space-y-1.5 flex-1">
                                 <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
                                 <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
                             </div>
-                            <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl w-24 shrink-0" />
+                            <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded-lg w-20 shrink-0 self-end sm:self-center" />
                         </div>
                     ))}
                 </div>
@@ -276,7 +286,7 @@ export const UserLinksList = ({
                 </div>
             )}
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 max-h-[540px] overflow-y-auto p-0.5 pr-2 space-y-2.5 custom-scrollbar">
                 {filteredLinks.map((link) => {
                     const fullShortUrl = `${API_BASE_URL}/r/${link.shortId}`;
                     const formattedDate = new Date(link.createdAt).toLocaleDateString(undefined, {
@@ -288,18 +298,21 @@ export const UserLinksList = ({
                     return (
                         <div
                             key={link.id}
-                            className="group p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500/50 shadow-sm hover:shadow-md dark:shadow-none transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                            className="group p-3 sm:py-3 sm:px-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500/50 shadow-xs hover:shadow-sm dark:shadow-none transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                         >
                             {/* Left: Link Details */}
-                            <div className="space-y-1.5 min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
+                            <div className="space-y-1 min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
                                     <a
                                         href={fullShortUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-base sm:text-lg font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-mono tracking-tight hover:underline flex items-center gap-1.5"
+                                        className="text-sm sm:text-base font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-mono tracking-tight hover:underline flex items-center gap-1.5"
                                     >
-                                        <span>/{link.shortId}</span>
+                                        <span>
+                                            <span className="text-slate-400 dark:text-slate-500 font-normal">{API_BASE_URL}/r/</span>
+                                            {link.shortId}
+                                        </span>
                                         <svg
                                             className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity"
                                             fill="none"
@@ -316,7 +329,7 @@ export const UserLinksList = ({
                                     </a>
 
                                     {/* Clicks Pill */}
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path
                                                 strokeLinecap="round"
@@ -335,18 +348,19 @@ export const UserLinksList = ({
                                     </span>
                                 </div>
 
-                                {/* Destination URL */}
-                                <p
-                                    title={link.originalUrl}
-                                    className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-lg font-mono"
-                                >
-                                    {link.originalUrl}
-                                </p>
-
-                                {/* Date */}
-                                <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                                    Created {formattedDate}
-                                </p>
+                                {/* Destination URL & Date */}
+                                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs min-w-0">
+                                    <p
+                                        title={link.originalUrl}
+                                        className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-sm sm:max-w-md font-mono"
+                                    >
+                                        {link.originalUrl}
+                                    </p>
+                                    <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
+                                    <p className="text-[11px] text-slate-400 dark:text-slate-500 shrink-0">
+                                        Created {formattedDate}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Right: Actions (Copy & Delete) */}
@@ -420,6 +434,57 @@ export const UserLinksList = ({
                     );
                 })}
             </div>
+
+            {/* Pagination Controls */}
+            {!isLoading && pagination && pagination.totalPages > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">
+                        Showing{" "}
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">
+                            {(pagination.page - 1) * pagination.limit + 1}
+                        </span>{" "}
+                        to{" "}
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">
+                            {Math.min(pagination.page * pagination.limit, pagination.total)}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">
+                            {pagination.total}
+                        </span>{" "}
+                        links
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                            disabled={!pagination.hasPrevPage || isLoading}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1 cursor-pointer"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            <span>Previous</span>
+                        </button>
+
+                        <span className="px-2 font-medium text-slate-600 dark:text-slate-400">
+                            Page {pagination.page} of {pagination.totalPages}
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={() => setPage((prev) => Math.min(pagination.totalPages, prev + 1))}
+                            disabled={!pagination.hasNextPage || isLoading}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1 cursor-pointer"
+                        >
+                            <span>Next</span>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Confirmation Modal */}
             <DeleteConfirmModal

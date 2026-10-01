@@ -60,14 +60,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         checkAuth();
     }, []);
 
-    // useEffect(() => {
-    //     if (user) {
-    //         localStorage.setItem("user", JSON.stringify(user));
-    //     } else {
-    //         localStorage.removeItem("user");
-    //     }
-    // }, [user]);
-
     const openlogin = () => {
         setAuthMode("login");
         setIsAuthModalOpen(true);
@@ -104,7 +96,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         openRegister,
         closeAuthModal,
         logout,
-        loading ,
+        loading,
         setLoading
     };
 

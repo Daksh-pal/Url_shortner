@@ -1,6 +1,5 @@
 import { nanoid } from "nanoid";
 import { Request, Response } from "express";
-import { Url } from "../model/url.Model";
 import { prisma } from "../lib/prisma";
 
 
@@ -10,11 +9,6 @@ export const createShortUrl = async (req: Request, res: Response) => {
         if (!req.user) {
             return res.status(401).json({ message: "Unauthorized. User not authenticated." });
         }
-        // If URL already exists in database, return the existing record
-        // const existingRecord = await Url.findOne({
-        //     originalUrl: url,
-        //     user: req.user.id
-        // });
 
         const existingRecord = await prisma.url.findUnique({
             where: {
@@ -29,7 +23,9 @@ export const createShortUrl = async (req: Request, res: Response) => {
             return res.status(200).json({ message: "Url fetched successfully", newRec: existingRecord });
         }
         if (slug) {
-            const existingShortUrl = await Url.findOne({ shortId: slug });
+            const existingShortUrl = await prisma.url.findUnique({
+                where: { shortId: slug },
+            });
             if (existingShortUrl) {
                 return res.status(400).json({ message: "Custom url already exists" });
             }
@@ -96,15 +92,38 @@ export const getRedirectUrl = async (req: Request, res: Response) => {
 export const getAllLinks = async (req: Request, res: Response) => {
     try {
         const { user } = req;
-        console.log("--------------", user);
-        if (user) {
-            const links = await prisma.url.findMany({
-                where: { userId: user.id },
-                orderBy: { createdAt: "desc" }
-            });
-            return res.status(200).json({ links });
+        const page = Math.max(1, Number(req.query.page) || 1)
+        const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 10));
+        const startIdx: number = (page - 1) * limit;
+
+        if (!user) {
+            return res.status(401).json({ message: "Unauthorized. User not authenticated." });
         }
-        return res.status(401).json({ message: "Unauthorized. User not authenticated." });
+
+        const [links, total] = await Promise.all([
+            prisma.url.findMany({
+                where: { userId: user.id },
+                orderBy: { createdAt: "desc" },
+                skip: startIdx,
+                take: limit,
+            }),
+            prisma.url.count({
+                where: { userId: user.id },
+            }),
+        ])
+
+        const totalPages = Math.ceil(total / limit);
+        return res.status(200).json({
+            links,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1,
+            },
+        });
 
     } catch (error: unknown) {
         console.error("Error fetching all the links:", error);
