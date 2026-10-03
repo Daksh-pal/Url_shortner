@@ -42,10 +42,7 @@ app.use("/api/auth", authRouter);
 app.use('/', shortUrlRouter);
 
 const PORT = process.env.PORT || 7005;
-const MongoUri = process.env.MONGO_URI;
-if (!MongoUri) {
-    throw new Error("MONGO_URI is not defined");
-}
+
 
 const connectDb = async (uri: string) => {
     await mongoose.connect(uri);
@@ -54,8 +51,6 @@ const connectDb = async (uri: string) => {
 
 const startServer = async () => {
     try {
-        await connectDb(MongoUri);
-
         app.listen(PORT, () => {
             console.log(`App running at port ${PORT}`);
             startClickSyncWorker();
