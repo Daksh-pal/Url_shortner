@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from "express";
-import { User } from '../model/user.Model';
 import { prisma } from '../lib/prisma';
 
 export const authenticateToken = async(req:Request , res : Response , next : NextFunction) => {
@@ -14,7 +13,6 @@ export const authenticateToken = async(req:Request , res : Response , next : Nex
         if (typeof decoded === "string") {
             return res.status(403).json({ message: "Invalid token payload." });
         }
-        // const user = await User.findById(decoded.id);
         const user = await prisma.user.findUnique({where : {id : decoded.id}})
         if(!user){
             return res.status(404).json({ message: "User not found" });
