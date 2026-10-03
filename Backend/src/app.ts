@@ -5,6 +5,8 @@ import shortUrlRouter from './routes/shortUrl.Route';
 import authRouter from './routes/auth.Route';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import './lib/redis';
+import { startClickSyncWorker } from './services/clickSync.service';
 config();
 
 const app = express();
@@ -44,6 +46,7 @@ const startServer = async () => {
 
         app.listen(PORT, () => {
             console.log(`App running at port ${PORT}`);
+            startClickSyncWorker();
         });
     } catch (error) {
         console.error("Failed to start server:", error);

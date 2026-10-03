@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
+import { redis } from "../lib/redis";
 
 
 export const createShortUrl = async (req: Request, res: Response) => {
@@ -63,31 +64,66 @@ export const createShortUrl = async (req: Request, res: Response) => {
     }
 }
 
+// Helper: Buffer click in Redis RAM with automatic fallback to Postgres
+const recordClick = (shortId: string) => {
+    redis.hincrby("clicks:buffer", shortId, 1).catch((err) => {
+        console.warn("⚠️ Redis click buffer failed, falling back to DB:", err);
+        prisma.url.update({
+            where: { shortId },
+            data: { clicks: { increment: 1 } },
+        }).catch((e) => console.error("DB click increment error:", e));
+    });
+};
+
 export const getRedirectUrl = async (req: Request, res: Response) => {
     try {
         const { shortId } = req.params;
-        const record = await prisma.url.update({
-            where: {
-                shortId
-            },
-            data: {
-                clicks: {
-                    increment: 1
-                }
+        const cacheKey = `url:${shortId}`;
+
+        // 1. Try reading from Redis cache first
+        try {
+            const cachedOriginalUrl = await redis.get(cacheKey);
+            if (cachedOriginalUrl) {
+                // Buffer click in Redis RAM (0.1ms, zero disk write)
+                recordClick(shortId);
+
+                console.log(`🚀 [CACHE HIT] Redirecting /${shortId} from Redis`);
+                return res.redirect(cachedOriginalUrl);
             }
-        })
-        if (!record) return res.status(404).json({ message: "Not found" });
+        } catch (error) {
+            console.warn("⚠️ Redis read failed, falling back to database:", error);
+        }
+
+        // 2. Cache Miss: Query PostgreSQL
+        const record = await prisma.url.findUnique({
+            where: { shortId },
+        });
+
+        if (!record) {
+            return res.status(404).json({ message: "Short url not found" });
+        }
+
+        // 3. Cache in Redis for 24 hours (86,400 seconds)
+        try {
+            await redis.set(cacheKey, record.originalUrl, "EX", 86400);
+            console.log(`💾 [CACHE MISS] Fetched /${shortId} from DB and cached in Redis`);
+        } catch (error) {
+            console.warn("⚠️ Redis write failed:", error);
+        }
+
+        // 4. Buffer click in Redis RAM and redirect
+        recordClick(shortId);
+
         return res.redirect(record.originalUrl);
-    }
-    catch (error) {
+
+    } catch (error) {
         console.error("Error while redirecting URL:", error);
 
         return res.status(500).json({
             message: "Internal server error"
         });
-
     }
-}
+};
 
 export const getAllLinks = async (req: Request, res: Response) => {
     try {
@@ -152,17 +188,33 @@ export const deleteLink = async (req: Request, res: Response) => {
             });
         }
 
-        const result = await prisma.url.deleteMany({
+        // 1. Find the link to verify ownership and grab its shortId
+        const link = await prisma.url.findFirst({
             where: {
                 id: linkId,
                 userId: user.id
-            }
+            },
+            select: { shortId: true }
         });
 
-        if (result.count === 0) {
+        if (!link) {
             return res.status(404).json({
                 message: "Link not found or you do not have permission to delete it"
             });
+        }
+
+        // 2. Delete from PostgreSQL
+        await prisma.url.delete({
+            where: { id: linkId }
+        });
+
+        // 3. Invalidate Redis Cache (Kill the Zombie!) & remove pending clicks
+        try {
+            await redis.del(`url:${link.shortId}`);
+            await redis.hdel("clicks:buffer", link.shortId);
+            console.log(`🗑️ [CACHE INVALIDATED] Removed url:${link.shortId} from Redis`);
+        } catch (cacheErr) {
+            console.warn("⚠️ Failed to delete key from Redis:", cacheErr);
         }
 
         return res.status(200).json({
