@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { config } from 'dotenv';
 import shortUrlRouter from './routes/shortUrl.Route';
@@ -20,11 +20,11 @@ const allowedOrigins = [
 ].filter(Boolean) as string[];
 
 app.use(cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
             return callback(null, true);
         }
-        return callback(null, true); // Permissive in production or fallback
+        return callback(null, true);
     },
     credentials: true
 }));
@@ -33,9 +33,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.get("/", (req, res) => {
+app.get("/", (req: Request, res: Response) => {
     res.send("App running successfully!");
-})
+});
 
 // Mount routes
 app.use("/api/auth", authRouter);
